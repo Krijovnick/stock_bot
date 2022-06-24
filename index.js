@@ -13,8 +13,8 @@ const OPEN = '1. open';
 const CLOSE = '4. close';
 
 const processNeedBuy = async function(url) {
-    const index = 0;
-    const positiveDays = 0;
+    let index = 0;
+    let positiveDays = 0;
     const response = await axios.get(url);
     const obj = response.data[DAYLY];
     let prevOpen;
@@ -38,8 +38,8 @@ const processNeedBuy = async function(url) {
 }
 
 const processNeedSell = async function(url) {
-    const index = 0;
-    const negativeDays = 0;
+    let index = 0;
+    let negativeDays = 0;
     const response = await axios.get(url);
     const obj = response.data[DAYLY];
     let prevOpen;
@@ -111,14 +111,13 @@ const processData = async function(ctx) {
     });
 }
 
-
 const bot = new Telegraf(process.env.BOT_TOKEN);
 bot.start((ctx) => ctx.reply('Welcome'));
 bot.command('/watch', (ctx) => {
     ctx.reply('Start watch the data. One time of the day you will receive the data')
     schedule.scheduleJob('jobId', { hour: 9, minute: 00, dayOfWeek: new schedule.Range(1, 5) }, function() {
+        ctx.reply(`Star collect the data on ${new Date()}`);
         processData(ctx);
-        ctx.reply(`End of watch data on ${new Date()}`);
     });
 });
 bot.command('/stop', (ctx) => {
