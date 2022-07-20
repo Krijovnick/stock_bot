@@ -2,8 +2,8 @@ const stocks = require('./stocks');
 const mongoose = require('mongoose');
 const { Telegraf } = require('telegraf');
 const axios = require('axios').default;
+import express from 'express';
 const SchemaStocks = require('./schema_stocks');
-const schedule = require('node-schedule');
 require('dotenv').config();
 
 const DAYLY = 'Time Series (Daily)';
@@ -11,6 +11,15 @@ const META_DATA = 'Meta Data';
 const SYMBOL = '2. Symbol';
 const OPEN = '1. open';
 const CLOSE = '4. close';
+
+const bot = new Telegraf(process.env.BOT_TOKEN);
+const app = express();
+app.use(express.json());
+app.use(
+  express.urlencoded({
+    extended: true
+  })
+);
 
 const processNeedBuy = async function(url) {
     let index = 0;
@@ -71,7 +80,7 @@ const getNumber = function(string) {
     return parseInt(string, 10);
 }
 
-const processData = async function(ctx) {
+const processData = async function() {
     await mongoose.connect(process.env.MONGO);
     stocks.forEach(function(name, i) {
         setTimeout(async function() {
@@ -92,7 +101,7 @@ const processData = async function(ctx) {
                     })
                     await stock.save();
 
-                    ctx.reply('Buy: ' + name);
+                    bot.telegram.sendMessage(MY_ID, 'Buy: ' + name);
                 }
             } else {
                 const selling = await processNeedSell(url);
@@ -104,27 +113,31 @@ const processData = async function(ctx) {
                     stockInBase.profitPercents = (stockInBase.sellDate * 100 / stockInBase.buyDate) - 100;
                     await stock.save();
 
-                    ctx.reply('Sell: ' + name);
+                    bot.telegram.sendMessage(MY_ID, 'Sell: ' + name);
                 }
             }
         }, i * 15000);
     });
 }
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
-bot.start((ctx) => ctx.reply('Welcome'));
-bot.command('/watch', (ctx) => {
-    ctx.reply('Start watch the data. One time of the day you will receive the data')
-    schedule.scheduleJob('jobId', { hour: 9, minute: 00, dayOfWeek: new schedule.Range(1, 5) }, function() {
-        ctx.reply(`Star collect the data on ${new Date()}`);
-        processData(ctx);
-    });
+bot.start((ctx) =>  {
+    ctx.reply('Welcome');
 });
-bot.command('/stop', (ctx) => {
-    schedule.cancelJob('jobId');
-    ctx.reply('Stop watch data');
+bot.launch({
+    webhook: {
+      domain: 'https://stockdailybot.herokuapp.com/new-message',
+      port: 3000
+    }
+  })
+app.post('/new-message', async (req, res) => {
+    bot.telegram.sendMessage(MY_ID, 'Message Received');
+    res.send('Done');
+});
+
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 })
-bot.launch();
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));
