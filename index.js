@@ -14,11 +14,13 @@ const CLOSE = '4. close';
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const secretPath = `/telegraf/${bot.secretPathComponent()}`;
-console.log(secretPath);
 bot.telegram.setWebhook(`https://stockdailybot.herokuapp.com${secretPath}`);
 
 const app = express();
-app.get('/', (req, res) => res.send('Hello World!'));
+app.get('/', (req, res) => { 
+    bot.telegram.sendMessage(MY_ID, 'Hello World'); 
+    res.send('Hello World!')
+});
 app.use(bot.webhookCallback(secretPath));
 
 const processNeedBuy = async function(url) {
@@ -128,3 +130,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+bot.launch();
