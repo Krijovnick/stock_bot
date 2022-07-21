@@ -2,7 +2,7 @@ const stocks = require('./stocks');
 const mongoose = require('mongoose');
 const { Telegraf } = require('telegraf');
 const axios = require('axios').default;
-import express from 'express';
+const express = require('express');
 const SchemaStocks = require('./schema_stocks');
 require('dotenv').config();
 
@@ -13,13 +13,13 @@ const OPEN = '1. open';
 const CLOSE = '4. close';
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
+const secretPath = `/telegraf/${bot.secretPathComponent()}`;
+console.log(secretPath);
+bot.telegram.setWebhook(`https://stockdailybot.herokuapp.com${secretPath}`);
+
 const app = express();
-app.use(express.json());
-app.use(
-  express.urlencoded({
-    extended: true
-  })
-);
+app.get('/', (req, res) => res.send('Hello World!'));
+app.use(bot.webhookCallback(secretPath));
 
 const processNeedBuy = async function(url) {
     let index = 0;
@@ -123,22 +123,8 @@ const processData = async function() {
 bot.start((ctx) =>  {
     ctx.reply('Welcome');
 });
-bot.launch({
-    webhook: {
-      domain: 'https://stockdailybot.herokuapp.com/new-message',
-      port: 3000
-    }
-  })
-app.post('/new-message', async (req, res) => {
-    bot.telegram.sendMessage(MY_ID, 'Message Received');
-    res.send('Done');
-});
 
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-})
-
-// Enable graceful stop
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+});
